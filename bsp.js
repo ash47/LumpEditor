@@ -13,26 +13,30 @@ var STATUS_READY = 3;
 
 // BSP Format constants
 var SIZE_INT = 4;
+var SIZE_VECTOR = 12;
 var SIZE_LUMP_T = 16;
+var SIZE_DEDGE_T = 4;
+var SIZE_DPLANE_T = 20;
+var SIZE_DFACE_T = 56;
 var SIZE_DDISPINFO_T = 176;
 var HEADER_LUMPS = 64;
 
 // Lump IDs
 var LUMP_ENTITIES = 0;
 var LUMP_PLANES = 1;
-var LUMP_TEXDATA = 3;
-var LUMP_VERTEXES = 4;
-var LUMP_VISIBILITY = 5;
-var LUMP_NODES = 6;
-var LUMP_TEXINFO = 7;
-var LUMP_FACES = 8;
-var LUMP_LIGHTING = 9;
-var LUMP_OCCLUSION = 10;
-var LUMP_LEAFS = 11;
-var LUMP_FACEIDS = 12;
-var LUMP_EDGES = 13;
-var LUMP_SURFEDGES = 14;
-var LUMP_MODELS = 15;
+var LUMP_TEXDATA = 2;
+var LUMP_VERTEXES = 3;
+var LUMP_VISIBILITY = 4;
+var LUMP_NODES = 5;
+var LUMP_TEXINFO = 6;
+var LUMP_FACES = 7;
+var LUMP_LIGHTING = 8;
+var LUMP_OCCLUSION = 9;
+var LUMP_LEAFS = 10;
+var LUMP_FACEIDS = 11;
+var LUMP_EDGES = 12;
+var LUMP_SURFEDGES = 13;
+var LUMP_MODELS = 14;
 var LUMP_DISPINFO = 26;
 
 /*
@@ -70,9 +74,19 @@ function bsp(fileName, callback) {
             thisBSP.status = STATUS_READY;
 
             // Run the callback
-            callback(thisBSP);
+            if(callback) callback(thisBSP);
         })
     });
+}
+
+// Saves the bsp
+bsp.prototype.save = function(newName, callback) {
+    fs.writeFile(fileDir+newName, this.data, function(err) {
+        if (err) throw err;
+
+        // run the callback
+        if(callback) callback();
+    })
 }
 
 // Finds the different lumps
@@ -129,6 +143,71 @@ bsp.prototype.getLump = function(number) {
             // Store data onto the lump
             lump.data = data;
         break;
+
+        case LUMP_FACES:
+            var total = lump_t.filelen / SIZE_DFACE_T;
+
+            // Build useful data
+            data = [];
+            for(var i=0; i<total; i++) {
+                data[i] = new dface_t(rawData.slice(i*SIZE_DFACE_T, (i+1)*SIZE_DFACE_T));
+            }
+
+            // Store data onto the lump
+            lump.data = data;
+        break;
+
+        case LUMP_PLANES:
+            var total = lump_t.filelen / SIZE_DPLANE_T;
+
+            // Build useful data
+            data = [];
+            for(var i=0; i<total; i++) {
+                data[i] = new dplane_t(rawData.slice(i*SIZE_DPLANE_T, (i+1)*SIZE_DPLANE_T));
+            }
+
+            // Store data onto the lump
+            lump.data = data;
+        break;
+
+        case LUMP_VERTEXES:
+            var total = lump_t.filelen / SIZE_VECTOR;
+
+            // Build useful data
+            data = [];
+            for(var i=0; i<total; i++) {
+                data[i] = new Vector_s(rawData.slice(i*SIZE_VECTOR, (i+1)*SIZE_VECTOR));
+            }
+
+            // Store data onto the lump
+            lump.data = data;
+        break;
+
+        case LUMP_EDGES:
+            var total = lump_t.filelen / SIZE_DEDGE_T;
+
+            // Build useful data
+            data = [];
+            for(var i=0; i<total; i++) {
+                data[i] = new dedge_t(rawData.slice(i*SIZE_DEDGE_T, (i+1)*SIZE_DEDGE_T));
+            }
+
+            // Store data onto the lump
+            lump.data = data;
+        break;
+
+        case LUMP_SURFEDGES:
+            var total = lump_t.filelen / SIZE_INT;
+
+            // Build useful data
+            data = [];
+            for(var i=0; i<total; i++) {
+                data[i] = rawData.readInt32LE(i*SIZE_INT);
+            }
+
+            // Store data onto the lump
+            lump.data = data;
+        break;
     }
 
     return lump;
@@ -138,26 +217,138 @@ bsp.prototype.getLump = function(number) {
 lump_t class
 */
 function lump_t(buff) {
-    this.fileofs = buff.readUInt32LE(0);
-    this.filelen = buff.readUInt32LE(4);
-    this.version = buff.readUInt32LE(8);
+    //this.buff = buff;
+    this.fileofs = buff.readInt32LE(0);
+    this.filelen = buff.readInt32LE(4);
+    this.version = buff.readInt32LE(8);
     this.fourCC = buff.toString(null, 12, 16);
+}
+
+/*
+dplane_t class
+*/
+function dplane_t(buff) {
+    this.buff = buff;
+    this.load();
+}
+
+dplane_t.prototype.load = function() {
+    this.normal = this.buff.readVector(0);
+    this.dist = this.buff.readFloatLE(12);
+    this.type = this.buff.readUInt32LE(16);
+}
+
+dplane_t.prototype.save = function() {
+    this.buff.writeVector(this.normal, 0);
+    this.buff.writeFloatLE(this.dist, 12);
+    this.buff.writeUInt32LE(this.type, 16);
+}
+
+/*
+dedge_t class
+*/
+function dedge_t(buff) {
+    this.buff = buff;
+    this.load();
+}
+
+dedge_t.prototype.load = function() {
+    this.v = new Array(this.buff.readUInt16LE(0), this.buff.readUInt16LE(2));
+}
+
+dedge_t.prototype.save = function() {
+    this.buff.writeUInt16LE(this.v[0], 0)
+    this.buff.writeUInt16LE(this.v[1], 2);
+}
+
+
+/*
+dface_t class
+*/
+function dface_t(buff) {
+    this.buff = buff;
+    this.load();
+}
+
+dface_t.prototype.load = function(){
+    this.planenum = this.buff.readUInt16LE(0);
+    this.side = this.buff.readUInt8(2);
+    this.onNode = this.buff.readUInt8(3);
+    this.firstedge = this.buff.readInt32LE(4);
+    this.numedges = this.buff.readInt16LE(8);
+    this.texinfo = this.buff.readInt16LE(10);
+    this.dispinfo = this.buff.readInt16LE(12);
+    this.surfaceFogVolumeID = this.buff.readInt16LE(14);
+    this.styles = new Array(this.buff.readUInt8(16), this.buff.readUInt8(17), this.buff.readUInt8(18), this.buff.readUInt8(19));
+    this.lightofs = this.buff.readInt32LE(20);
+    this.area = this.buff.readFloatLE(24);
+    this.LightmapTextureMinsInLuxels = new Array(this.buff.readInt32LE(28), this.buff.readInt32LE(32));
+    this.LightmapTextureSizeInLuxels = new Array(this.buff.readInt32LE(36), this.buff.readInt32LE(40));
+    this.origFace = this.buff.readInt32LE(44);
+    this.numPrims = this.buff.readUInt16LE(48);
+    this.firstPrimID = this.buff.readUInt16LE(50);
+    this.smoothingGroups = this.buff.readInt32LE(52);
+}
+
+dface_t.prototype.save = function(){
+    this.buff.writeUInt16LE(this.planenum, 0);
+    this.buff.writeUInt8(this.side, 2);
+    this.buff.writeUInt8(this.onNode, 3);
+    this.buff.writeInt32LE(this.firstedge, 4);
+    this.buff.writeInt16LE(this.numedges, 8);
+    this.buff.writeInt16LE(this.texinfo, 10);
+    this.buff.writeInt16LE(this.dispinfo, 12);
+    this.buff.writeInt16LE(this.surfaceFogVolumeID, 14);
+    this.buff.writeUInt8(this.styles[0], 16);
+    this.buff.writeUInt8(this.styles[1], 17);
+    this.buff.writeUInt8(this.styles[2], 18);
+    this.buff.writeUInt8(this.styles[3], 19);
+    this.buff.writeInt32LE(this.lightofs, 20);
+    this.buff.writeFloatLE(this.area, 24);
+    this.buff.writeInt32LE(this.LightmapTextureMinsInLuxels[0], 28);
+    this.buff.writeInt32LE(this.LightmapTextureMinsInLuxels[1], 32);
+    this.buff.writeInt32LE(this.LightmapTextureSizeInLuxels[0], 36);
+    this.buff.writeInt32LE(this.LightmapTextureSizeInLuxels[1], 40);
+    this.buff.writeInt32LE(this.origFace, 44);
+    this.buff.writeUInt16LE(this.numPrims, 48);
+    this.buff.writeUInt16LE(this.firstPrimID, 50);
+    this.buff.writeInt32LE(this.smoothingGroups, 52);
 }
 
 /*
 ddispinfo_t class
 */
 function ddispinfo_t(buff) {
-    this.startPosition = buff.readVector(0);
-    this.DispVertStart = buff.readUInt32LE(12);
-    this.DispTriStart = buff.readUInt32LE(16);
-    this.power = buff.readUInt32LE(20);
-    this.minTess = buff.readUInt32LE(24);
-    this.smoothingAngle = buff.readFloatLE(28);
-    this.contents = buff.readUInt32LE(28);
-    this.MapFace = buff.readUInt16LE(32);
-    this.LightmapAlphaStart = buff.readUInt32LE(34);
-    this.LightmapSamplePositionStart = buff.readUInt32LE(38);
+    this.buff = buff;
+    this.load();
+}
+
+ddispinfo_t.prototype.load = function() {
+    this.startPosition = this.buff.readVector(0);
+    this.DispVertStart = this.buff.readInt32LE(12);
+    this.DispTriStart = this.buff.readInt32LE(16);
+    this.power = this.buff.readInt32LE(20);
+    this.minTess = this.buff.readInt32LE(24);
+    this.smoothingAngle = this.buff.readFloatLE(28);
+    this.contents = this.buff.readInt32LE(32);
+    this.MapFace = this.buff.readUInt16LE(36);
+    this.LightmapAlphaStart = this.buff.readInt32LE(38);
+    this.LightmapSamplePositionStart = this.buff.readInt32LE(42);
+
+    // missing EdgeNeighbors, CornerNeighbors, AllowedVerts
+}
+
+ddispinfo_t.prototype.save = function() {
+    this.buff.writeVector(this.startPosition, 0);
+    this.buff.writeInt32LE(this.DispVertStart, 12);
+    this.buff.writeInt32LE(this.DispTriStart, 16);
+    this.buff.writeInt32LE(this.power, 20);
+    this.buff.writeInt32LE(this.minTess, 24);
+    this.buff.writeFloatLE(this.smoothingAngle, 28);
+    this.buff.writeInt32LE(this.contents, 32);
+    this.buff.writeUInt16LE(this.MapFace, 36);
+    this.buff.writeInt32LE(this.LightmapAlphaStart, 38);
+    this.buff.writeInt32LE(this.LightmapSamplePositionStart, 42);
 
     // missing EdgeNeighbors, CornerNeighbors, AllowedVerts
 }
@@ -176,10 +367,37 @@ Vector.prototype.toString = function() {
 }
 
 /*
+saveable vector
+*/
+function Vector_s(buff) {
+    this.buff = buff;
+    this.load();
+}
+
+Vector_s.prototype = new Vector(0, 0, 0);
+
+Vector_s.prototype.load = function() {
+    this.x = this.buff.readFloatLE(0);
+    this.y = this.buff.readFloatLE(4);
+    this.z = this.buff.readFloatLE(8);
+}
+
+Vector_s.prototype.save = function() {
+    this.buff.writeFloatLE(this.x, 0);
+    this.buff.writeFloatLE(this.y, 4);
+    this.buff.writeFloatLE(this.z, 8);
+}
+
+/*
 Extend buffer class
 */
 Buffer.prototype.readVector = function(offset) {
-    return new Vector(this.readFloatLE(offset), this.readFloatLE(offset+4), this.readFloatLE(offset+8))
+    return new Vector(this.readFloatLE(offset), this.readFloatLE(offset+4), this.readFloatLE(offset+8));
+}
+Buffer.prototype.writeVector = function(vec, offset) {
+    this.writeFloatLE(vec.x, offset);
+    this.writeFloatLE(vec.y, offset+4);
+    this.writeFloatLE(vec.z, offset+8);
 }
 
 // Define exports
