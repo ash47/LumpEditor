@@ -48,14 +48,23 @@ doRemove(-8584,11256,64);
 doRemove(-9608,12938,368);
 doRemove(-8584,11256,368);
 
+// Progrsss update
+console.log('Attempting to load evocity...');
+
 // Load a bsp
-new bsp('test.bsp', function(map) {
+new bsp('RP_EvoCity_v2d.bsp', function(map) {
+    // Progress update
+    console.log('Loaded map, reading lumps...');
+
     var dispinfo = map.getLump(LUMP_DISPINFO).data;
     var faces = map.getLump(LUMP_FACES).data;
     //var planes = map.getLump(LUMP_PLANES).data;
     var vertexes = map.getLump(LUMP_VERTEXES).data;
     var edges = map.getLump(LUMP_EDGES).data;
     var surfedges = map.getLump(LUMP_SURFEDGES).data;
+
+    // Progress update
+    console.log('Finished reading lumps! Let\'s make some changes...');
 
     for(var i=0; i<dispinfo.length; i++) {
         // Grab the position of this displacement
@@ -101,6 +110,9 @@ new bsp('test.bsp', function(map) {
             }
         }
     }
+
+    // Progress Update
+    console.log('Finished making changes! Saving changes...');
 
     // Save the bsp
     map.save('output.bsp', function() {
