@@ -20,6 +20,7 @@ var SIZE_DPLANE_T = 20;
 var SIZE_DFACE_T = 56;
 var SIZE_DDISPINFO_T = 176;
 var HEADER_LUMPS = 64;
+var SIZE_DGAMELUMP_T = 16;
 
 // Lump IDs
 var LUMP_ENTITIES = 0;
@@ -38,6 +39,7 @@ var LUMP_EDGES = 12;
 var LUMP_SURFEDGES = 13;
 var LUMP_MODELS = 14;
 var LUMP_DISPINFO = 26;
+var LUMP_GAME_LUMP = 35;
 
 /*
 BSP class
@@ -89,6 +91,60 @@ bsp.prototype.save = function(newName, callback) {
     })
 }
 
+// Updates a lump
+// WARNING: THIS WILL DESTROY ALL OTHER LOADED LUMPS, RELOAD THEM! (THIS MAY BE FIXED LATER)
+bsp.prototype.updateLump = function(lumpNumber, data) {
+    if(lumpNumber == LUMP_GAME_LUMP) {
+        throw new Error('Unable to update lump number '+lumpNumber);
+    }
+
+    // Grab the lump info
+    var lump = this.lump_ts[lumpNumber];
+    var oldSize = lump.filelen;
+
+    // Workout how far we need to push the rest of the data
+    var offsetSize = data.length - oldSize;
+
+    // Tell the user the change in buffer size
+    console.log('Changing lump '+lumpNumber+' from '+oldSize+' to '+data.length+' (Offset='+offsetSize+')');
+
+    // Update game lump
+    var gl = this.getLump(LUMP_GAME_LUMP).data.dgamelump_ts;
+    for(var i=0; i<gl.length; i++) {
+        var nextLump = gl[i];
+
+        if(nextLump.fileofs > lump.fileofs) {
+            nextLump.fileofs += offsetSize;
+            nextLump.save();
+        }
+    }
+
+    // Store the new size of the lump
+    lump.filelen = data.length;
+    lump.save();
+
+    // Push other lumps by correct amount
+    for(var i=0; i<HEADER_LUMPS; i++) {
+        var nextLump = this.lump_ts[i];
+
+        if(nextLump.fileofs > lump.fileofs) {
+            nextLump.fileofs += offsetSize;
+            nextLump.save();
+        }
+    }
+
+    console.log('Original length: '+this.data.length);
+
+    // Merge the data in
+    this.data = Buffer.concat([
+        this.data.slice(0, lump.fileofs),
+        data,
+        this.data.slice(lump.fileofs+oldSize)
+    ]);
+
+    console.log('New length: '+this.data.length);
+}
+
 // Finds the different lumps
 bsp.prototype.findLumps = function() {
     // Ensure it's the right time to call this function
@@ -131,6 +187,134 @@ bsp.prototype.getLump = function(number) {
 
     // Load the data specific stuff
     switch(number) {
+        case LUMP_ENTITIES:
+            // Create a string of the data
+            var data = ''+rawData;
+            var i = 0;
+            var line = 1;
+
+            // We are looking for a key
+            var key = null;
+
+            // Our current entity
+            var curEnt = null;
+
+            // Stores entities
+            var ents = new entityList();
+
+            // Build entity list
+            while(i < data.length) {
+                // Grab a character
+                var chr = data.charAt(i);
+
+                if(chr == ' ' || chr == '\t') {
+                    // White space, ignore it
+                } else if(chr == '\n') {
+                    // We moved onto the next line
+                    line++;
+                    if(data.charAt(i+1) == '\r') i++;
+                } else if(chr == '\r') {
+                    // We moved onto the next line
+                    line++;
+                    if(data.charAt(i+1) == '\n') i++;
+                } else if(chr == '"') {
+                    // Make sure we have an entity
+                    if(curEnt == null) {
+                        throw new Error("Key value pair outside of an entity at line "+line);
+                    }
+
+                    var resultString = '';
+                    i++;
+
+                    while(i < data.length) {
+                        chr = data.charAt(i);
+                        if(chr == '"') break;
+
+                        if(chr == '\n') {
+                            // We moved onto the next line
+                            line++;
+                            if(data.charAt(i+1) == '\r') i++;
+                        } else if(chr == '\r') {
+                            // We moved onto the next line
+                            line++;
+                            if(data.charAt(i+1) == '\n') i++;
+                        } else if(chr == '\\') {
+                            i++;
+                            // Gran the mext cjaracter
+                            chr = data.charAt(i);
+
+                            // Check for escaped characters
+                            switch(chr) {
+                                case '\\':chr = '\\'; break;
+                                case '"': chr = '"'; break;
+                                case '\'': chr = '\''; break;
+                                case 'n': chr = '\n'; break;
+                                case 'r': chr = '\r'; break;
+                                default:
+                                    chr = '\\';
+                                    i--;
+                                break;
+                            }
+                        }
+
+                        resultString += chr;
+                        i++;
+                    }
+
+                    if (i == data.length || chr == '\n' || chr == '\r') throw new Error("Unterminated string at line " + line);
+
+                    // Store string
+                    if(key == null) {
+                        key = resultString;
+                    } else {
+                        // Store this key value pair
+                        curEnt.addKey(key, resultString);
+
+                        // Reset key
+                        key = null;
+                    }
+
+                    // Check if we need to reparse the character that ended this string
+                    if(chr != '"') --i;
+                } else if(chr == '{') {
+                    // Create a new entity
+                    curEnt = new entity();
+                    key = null;
+                } else if (chr == '}') {
+                    // Store current entity
+                    if(curEnt.totalKeys() > 0) {
+                        ents.addEntity(curEnt);
+                    }
+
+                    // No current entity
+                    curEnt = null;
+                } else if (chr == '\0') {
+                    // Ent of lump
+                } else {
+                    console.log("Unexpected character \"" + chr + "\" at line " + line + " (offset " + i + ")");
+
+                    // Skip to next line
+                    while(++i < data.length) {
+                        chr = data.charAt(i);
+
+                        // Check for new line
+                        if(chr == '\n' || chr == '\r') break;
+                    }
+
+                    // We are on a new line
+                    line++;
+
+                    // Move onto the next char
+                    i++;
+                }
+
+                i++;
+            }
+
+            // Store entities
+            lump.data = ents;
+        break;
+
         case LUMP_DISPINFO:
             var total = lump_t.filelen / SIZE_DDISPINFO_T;
 
@@ -208,20 +392,335 @@ bsp.prototype.getLump = function(number) {
             // Store data onto the lump
             lump.data = data;
         break;
+
+        case LUMP_GAME_LUMP:
+            // Load game lumps
+            lump.data = new dgamelumpheader_t(rawData);
+        break;
     }
 
     return lump;
 }
 
 /*
+entityList class
+*/
+
+function entityList() {
+    // List of entities in this list
+    this.ents = [];
+}
+
+// Adds an entity to this list
+entityList.prototype.addEntity = function(ent) {
+    this.ents.push(ent);
+}
+
+// Creates a new entity by classname
+entityList.prototype.createEntity = function(cls) {
+    // Create new entity
+    var ent = new entity();
+
+    // Store class
+    ent.addKey('classname', cls);
+
+    // Add to our list
+    this.ents.push(ent);
+
+    // Return to user
+    return ent;
+}
+
+// Gets the nth entity by name
+entityList.prototype.getEntityByName = function(name, n) {
+    // Default n to 0
+    n = n || 0;
+    var count = 0;
+
+    // Loop over all entities
+    for(var i=0; i<this.ents.length; i++) {
+        var ent = this.ents[i];
+
+        // Compare the name
+        if(ent.getValue('targetname') == name) {
+            // Is this the correct one?
+            if(count == n) {
+                return ent;
+            }
+
+            count++;
+        }
+    }
+
+    // No entity found
+    return null;
+}
+
+// Returns the nth entity by origin
+entityList.prototype.getEntityByOrigin = function(originVector, n) {
+    // Default n to 0
+    n = n || 0;
+    var count = 0;
+
+    // Grab comparable string
+    var o = originVector.toMapString();
+
+    // Loop over all entities
+    for(var i=0; i<this.ents.length; i++) {
+        var ent = this.ents[i];
+
+        // Compare the name
+        if(ent.getValue('origin') == o) {
+            // Is this the correct one?
+            if(count == n) {
+                return ent;
+            }
+
+            count++;
+        }
+    }
+
+    // No entity found
+    return null;
+}
+
+// Removes an entity from the list
+entityList.prototype.removeEntity = function(ent) {
+    if(!ent) {
+        console.log('WARNING: removeEntity was called with a null entity!');
+        return false;
+    }
+
+    // Loop over all entities
+    for(var i=0; i<this.ents.length; i++) {
+        if(this.ents[i] === ent) {
+            this.ents.splice(i, 1);
+            return true;
+        }
+    }
+
+    // Warnings
+    console.log('WARNING: removeEntity failed to find the entity!');
+
+    return false;
+}
+
+entityList.prototype.createBuffer = function() {
+    var str = '';
+
+    // Loop over all entities
+    for(var i=0; i<this.ents.length; i++) {
+        // Grab an entitiy
+        var ent = this.ents[i];
+
+        // Open a brace
+        str += '{\n';
+
+        // Add kv pairs
+        var keys = ent.getAllKeys();
+        for(var j=0; j<keys.length; j++) {
+            var key = keys[j];
+
+            // Add kv pair
+            str += '"'+key[0]+'" "'+key[1]+'"\n';
+        }
+
+        // Close a brace
+        str += '}\n';
+    }
+
+    // Add null terminator
+    str += '\0';
+
+    // Convert into buffer
+    var out = new Buffer(str.length);
+    out.write(str);
+
+    // Return buffer
+    return out;
+}
+
+/*
+entity class
+*/
+function entity() {
+    // Stores key value pairs
+    this.keys = [];
+}
+
+// Add key value pair
+entity.prototype.addKey = function(key, value) {
+    // Convert value
+    if(value instanceof Vector) {
+        value = value.toMapString();
+    }
+
+    this.keys.push([key, value]);
+}
+
+// Sets the name of this entity
+entity.prototype.setName = function(name) {
+    // Check if we already have a targetname key
+    for(var i=0; i<this.keys.length; i++) {
+        var key = this.keys[i];
+
+        if(key[0] == 'targetname') {
+            key[1] = name;
+            return true;
+        }
+    }
+
+    // Key must not exist, add it
+    this.addKey('targetname', name);
+
+    return false;
+}
+
+// Sets the nth key of this entity (creating a new key if n dont exist)
+entity.prototype.setKey = function(keyName, value, n) {
+    var count = 0;
+    n = n || 0;
+
+    // Convert value
+    if(value instanceof Vector) {
+        value = value.toMapString();
+    }
+
+    // Check if we already have a targetname key
+    for(var i=0; i<this.keys.length; i++) {
+        var key = this.keys[i];
+
+        if(key[0] == keyName) {
+            if(count == n) {
+                key[1] = value;
+                return true;
+            }
+
+            count++;
+        }
+    }
+
+    // Key must not exist, add it
+    this.addKey('keyName', value);
+
+    return false;
+}
+
+// Returns how many keys are in this entity
+entity.prototype.totalKeys = function() {
+    return this.keys.length;
+}
+
+// Finds all the kv pairs with the given key
+entity.prototype.getKeys = function(key) {
+    var k = [];
+
+    // Loop over all our keys
+    for(var i=0; i<this.keys.length; i++) {
+        // Check if this is the key we are looking for
+        if(this.keys[i][0] == key) {
+            // Add it to the list of keys
+            k.push(this.keys[i]);
+        }
+    }
+
+    // Give the list of keys
+    return k;
+}
+
+// Returns the nth value for a given key (null for doesnt exist)
+entity.prototype.getValue = function(key, n) {
+    var count = 0;
+    n = n || 0;
+
+    // Loop over all our keys
+    for(var i=0; i<this.keys.length; i++) {
+        // Check if this is the key we are looking for
+        if(this.keys[i][0] == key) {
+            // Check if this was the one we wanted
+            if(count == n) {
+                return this.keys[i][1];
+            }
+
+            count++;
+        }
+    }
+
+    return null;
+}
+
+// Gets all keys
+entity.prototype.getAllKeys = function() {
+    return this.keys;
+}
+
+/*
 lump_t class
 */
 function lump_t(buff) {
-    //this.buff = buff;
-    this.fileofs = buff.readInt32LE(0);
-    this.filelen = buff.readInt32LE(4);
-    this.version = buff.readInt32LE(8);
-    this.fourCC = buff.toString(null, 12, 16);
+    this.buff = buff;
+    this.load();
+}
+
+lump_t.prototype.load = function() {
+    this.fileofs = this.buff.readInt32LE(0);
+    this.filelen = this.buff.readInt32LE(4);
+    this.version = this.buff.readInt32LE(8);
+    this.fourCC = this.buff.toString(null, 12, 16);
+}
+
+lump_t.prototype.save = function() {
+    this.buff.writeInt32LE(this.fileofs, 0);
+    this.buff.writeInt32LE(this.filelen, 4);
+    this.buff.writeInt32LE(this.version, 8);
+
+    // Save fourCC
+}
+
+/*
+dgamelumpheader_t class
+*/
+function dgamelumpheader_t(buff) {
+    this.buff = buff;
+    this.load();
+}
+
+dgamelumpheader_t.prototype.load = function() {
+    this.lumpCount = this.buff.readInt32LE(0);
+
+    // Build useful data
+    this.dgamelump_ts = [];
+    for(var i=0; i<this.lumpCount; i++) {
+        //console.log(i);
+        this.dgamelump_ts[i] = new dgamelump_t(this.buff.slice(4+i*SIZE_DGAMELUMP_T, 4+(i+1)*SIZE_DGAMELUMP_T));
+    }
+}
+
+
+
+/*
+dgamelump_t class
+*/
+
+function dgamelump_t(buff) {
+    this.buff = buff;
+    this.load();
+}
+
+dgamelump_t.prototype.load = function() {
+    this.id = this.buff.readInt32LE(0);
+    this.flags = this.buff.readUInt16LE(4);
+    this.version = this.buff.readUInt16LE(6);
+    this.fileofs = this.buff.readInt32LE(8);
+    this.filelen = this.buff.readInt32LE(12);
+}
+
+dgamelump_t.prototype.save = function() {
+    this.buff.writeInt32LE(this.id, 0);
+    this.buff.writeUInt16LE(this.flags, 4);
+    this.buff.writeUInt16LE(this.version, 6);
+    this.buff.writeInt32LE(this.fileofs, 8);
+    this.buff.writeInt32LE(this.filelen, 12);
 }
 
 /*
@@ -364,6 +863,10 @@ function Vector(x, y, z) {
 
 Vector.prototype.toString = function() {
     return('('+this.x+','+this.y+','+this.z+')');
+}
+
+Vector.prototype.toMapString = function() {
+    return(this.x+' '+this.y+' '+this.z);
 }
 
 /*

@@ -3,6 +3,7 @@ BSP Lump Editor
 
 ###About###
  - This is a basic editor for BSP Lumps. It's primary (and possibly only) purpose is to fix the cave crash in Evocity.
+ - It currently also fixes the lifts in evocity, YAY!
  - Written in node.js
 
 ###What do I need to use this?###

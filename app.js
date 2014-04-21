@@ -19,6 +19,7 @@ var LUMP_EDGES = 12;
 var LUMP_SURFEDGES = 13;
 var LUMP_MODELS = 14;
 var LUMP_DISPINFO = 26;
+var LUMP_GAME_LUMP = 35;
 
 // Replace shit
 var toRemove = {};
@@ -54,7 +55,414 @@ console.log('Attempting to load evocity...');
 // Load a bsp
 new bsp('RP_EvoCity_v2d.bsp', function(map) {
     // Progress update
-    console.log('Loaded map, reading lumps...');
+    console.log('Loaded map, editing entities...');
+
+    // How fast the lift will now travel
+    var newLiftSpeed = 200;
+    var otherLiftSpeed = 400;
+
+    // Grab all entities
+    var ents = map.getLump(LUMP_ENTITIES).data;
+    var ent;
+
+    // Grab the lift
+    var lift = ents.getEntityByName('PDElevatorIsAPainInYourAss');
+    if(!lift) throw new Error('Failed to find the lift!');
+    lift.setName('Ash47_Lift');
+    lift.setKey('startspeed', newLiftSpeed);
+
+    // Modify other lifts
+    ent = ents.getEntityByName('TallBuild_Elev2');
+    if(!ent) throw new Error('Failed to find the lift!');
+    ent.setKey('startspeed', otherLiftSpeed);
+
+    ent = ents.getEntityByName('lookatmeimaliftgoinguporgoingdown');
+    if(!ent) throw new Error('Failed to find the lift!');
+    ent.setKey('startspeed', otherLiftSpeed);
+
+    // Make lifts land correctly
+    ent = ents.getEntityByName('niggervader2');
+    if(!ent) throw new Error('Failed to find the lift!');
+    ent.setKey('origin', new Vector(-7819, -8683, -380+32));
+
+    ent = ents.getEntityByName('niggervader1');
+    if(!ent) throw new Error('Failed to find the lift!');
+    ent.setKey('origin', new Vector(-7819, -8683, -2191-32));
+
+    ent = ents.getEntityByName('elev1_l1');
+    if(!ent) throw new Error('Failed to find the lift!');
+    ent.setKey('origin', new Vector(-4708, -9285, 129.958-24));
+
+    ent = ents.getEntityByName('elev1_l2');
+    if(!ent) throw new Error('Failed to find the lift!');
+    ent.setKey('origin', new Vector(-4708, -9285, 1677.96+24));
+
+    // Grab the button model
+    ent = ents.getEntityByOrigin(new Vector(-7106, -9382, 132));
+    if(!ent) throw new Error('Failed to find button model!');
+    var buttonModel = ent.getValue('model');
+    ents.removeEntity(ent);
+
+    // Elevator button
+    ent = ents.getEntityByOrigin(new Vector(-7115, -9354, 144));
+    if(!ent) throw new Error('Failed to find Elevator button!');
+    ents.removeEntity(ent);
+
+    // Second Floor Button
+    ent = ents.getEntityByOrigin(new Vector(-7106, -9382, 894));
+    if(!ent) throw new Error('Failed to find Second Floor Button');
+    ents.removeEntity(ent);
+
+    // Third Floor Button
+    ent = ents.getEntityByOrigin(new Vector(-7122, -9382, 1530));
+    if(!ent) throw new Error('Failed to find Third Floor Button');
+    ents.removeEntity(ent);
+
+    // Fourth Floor Button
+    ent = ents.getEntityByOrigin(new Vector(-7124, -9379.24, 2682.73));
+    if(!ent) throw new Error('Failed to find Fourth Floor Button');
+    ents.removeEntity(ent);
+
+    // Remove old hooks
+    ent = ents.getEntityByName('relay_f1');
+    if(!ent) throw new Error('Failed to find relay f1');
+    ents.removeEntity(ent);
+
+    ent = ents.getEntityByName('relay_f2');
+    if(!ent) throw new Error('Failed to find relay f2');
+    ents.removeEntity(ent);
+
+    ent = ents.getEntityByName('relay_f3')
+    if(!ent) throw new Error('Failed to find relay f3');
+    ents.removeEntity(ent);
+
+    // Modify the old track
+    ent = ents.getEntityByName('Floor4')
+    if(!ent) throw new Error('Failed to find Floor4');
+    ent.setKey('OnPass', 'ash47_fm_01,Trigger,0,0,0');
+    ent.setKey('origin', new Vector(-7188, -9309, 128-9));
+
+    ent = ents.getEntityByName('Floor2')
+    if(!ent) throw new Error('Failed to find Floor4');
+    ent.setKey('OnPass', 'ash47_fm_02,Trigger,0,0,0');
+    ent.setKey('origin', new Vector(-7188, -9309, 908-6));
+
+    ent = ents.getEntityByName('Floor3')
+    if(!ent) throw new Error('Failed to find Floor4');
+    ent.setKey('OnPass', 'ash47_fm_03,Trigger,0,0,0');
+    ent.setKey('origin', new Vector(-7188, -9309, 1548-6));
+
+    ent = ents.getEntityByName('Floor5')
+    if(!ent) throw new Error('Failed to find Floor4');
+    ent.setKey('OnPass', 'ash47_fm_04,Trigger,0,0,0');
+    ent.setKey('origin', new Vector(-7188, -9309, 2680+15));
+
+    // Relays to make lift take shortest route
+    ent = ents.createEntity('logic_relay');
+    ent.setName('ash47_02_f');
+    ent.addKey('OnTrigger', 'Ash47_Lift,StartForward,0,0,0');
+
+    ent = ents.createEntity('logic_relay');
+    ent.setName('ash47_02_b');
+    ent.addKey('OnTrigger', 'Ash47_Lift,StartBackward,0,0,0');
+
+    ent = ents.createEntity('logic_relay');
+    ent.setName('ash47_03_f');
+    ent.addKey('OnTrigger', 'Ash47_Lift,StartForward,0,0,0');
+
+    ent = ents.createEntity('logic_relay');
+    ent.setName('ash47_03_b');
+    ent.addKey('OnTrigger', 'Ash47_Lift,StartBackward,0,0,0');
+
+    /*
+    Floor Managers
+    */
+
+    // Floor 1
+    ent = ents.createEntity('logic_relay');
+    ent.setName('ash47_fm_01');
+    ent.addKey('OnTrigger', 'Ash47_Lift,Stop,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_btn_02,Unlock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_btn_03,Unlock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_btn_04,Unlock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_02_f,Enable,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_03_f,Enable,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_02_b,Disable,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_03_b,Disable,0,0,0');
+
+    // Floor 2
+    ent = ents.createEntity('logic_relay');
+    ent.setName('ash47_fm_02');
+    ent.addKey('OnTrigger', 'Ash47_Lift,Stop,0,0.070,0');
+    ent.addKey('OnTrigger', 'ash47_btn_01,Unlock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_btn_03,Unlock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_btn_04,Unlock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_03_f,Enable,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_03_b,Disable,0,0,0');
+
+    // Floor 3
+    ent = ents.createEntity('logic_relay');
+    ent.setName('ash47_fm_03');
+    ent.addKey('OnTrigger', 'Ash47_Lift,Stop,0,0.074,0');
+    ent.addKey('OnTrigger', 'ash47_btn_01,Unlock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_btn_02,Unlock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_btn_04,Unlock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_02_f,Disable,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_02_b,Enable,0,0,0');
+
+    // Floor 4
+    ent = ents.createEntity('logic_relay');
+    ent.setName('ash47_fm_04');
+    ent.addKey('OnTrigger', 'Ash47_Lift,Stop,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_btn_01,Unlock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_btn_02,Unlock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_btn_03,Unlock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_02_f,Disable,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_03_f,Disable,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_02_b,Enable,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_03_b,Enable,0,0,0');
+
+    /*
+    Create Buttons
+    */
+
+        /*
+        Floor 1
+        */
+
+    // Create a button
+    ent = ents.createEntity('func_button');
+    ent.setName('ash47_btn_01');
+    ent.addKey('model', buttonModel);
+    ent.addKey('origin', new Vector(-7115, -9354, 126));
+    ent.addKey('angles', new Vector(0, 180, 0));
+    ent.addKey('parentname', 'Ash47_Lift');
+    ent.addKey('spawnflags', '1025');
+    ent.addKey('StartDisabled', '1');
+    ent.addKey('sounds', '3');
+
+    // Enable only our floor
+    ent.addKey('OnPressed', 'ash47_fm_01,Enable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_02,Disable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_03,Disable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_04,Disable,0,0,0');
+
+    // Disable buttons
+    ent.addKey('OnPressed', 'ash47_btn_01,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_02,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_03,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_04,Lock,0,0,0');
+
+    // Make it move the lift
+    ent.addKey('OnPressed', 'Ash47_Lift,StartBackward,0,0,0');
+
+    // Create a button
+    ent = ents.createEntity('func_button');
+    ent.setName('ash47_btn_01');
+    ent.addKey('model', buttonModel);
+    ent.addKey('origin', new Vector(-7117, -9381, 142));
+    ent.addKey('angles', new Vector(0, 0, 0));
+    ent.addKey('spawnflags', '1025');
+    ent.addKey('StartDisabled', '1');
+    ent.addKey('sounds', '3');
+
+    // Enable only our floor
+    ent.addKey('OnPressed', 'ash47_fm_01,Enable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_02,Disable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_03,Disable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_04,Disable,0,0,0');
+
+    // Disable buttons
+    ent.addKey('OnPressed', 'ash47_btn_01,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_02,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_03,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_04,Lock,0,0,0');
+
+    // Make it move the lift
+    ent.addKey('OnPressed', 'Ash47_Lift,StartBackward,0,0,0');
+
+        /*
+        Floor 2
+        */
+
+    // Create a button
+    ent = ents.createEntity('func_button');
+    ent.setName('ash47_btn_02');
+    ent.addKey('model', buttonModel);
+    ent.addKey('origin', new Vector(-7115, -9354, 134));
+    ent.addKey('angles', new Vector(0, 180, 0));
+    ent.addKey('parentname', 'Ash47_Lift');
+    ent.addKey('spawnflags', '1025');
+    ent.addKey('sounds', '3');
+
+    // Enable only our floor
+    ent.addKey('OnPressed', 'ash47_fm_01,Disable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_02,Enable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_03,Disable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_04,Disable,0,0,0');
+
+    // Disable buttons
+    ent.addKey('OnPressed', 'ash47_btn_01,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_02,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_03,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_04,Lock,0,0,0');
+
+    // Make it move the lift
+    ent.addKey('OnPressed', 'ash47_02_f,Trigger,0,0,0');
+    ent.addKey('OnPressed', 'ash47_02_b,Trigger,0,0,0');
+
+    // Create a button
+    ent = ents.createEntity('func_button');
+    ent.setName('ash47_btn_02');
+    ent.addKey('model', buttonModel);
+    ent.addKey('origin', new Vector(-7106, -9382, 894));
+    ent.addKey('angles', new Vector(0, 0, 0));
+    ent.addKey('spawnflags', '1025');
+    ent.addKey('sounds', '3');
+
+    // Enable only our floor
+    ent.addKey('OnPressed', 'ash47_fm_01,Disable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_02,Enable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_03,Disable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_04,Disable,0,0,0');
+
+    // Disable buttons
+    ent.addKey('OnPressed', 'ash47_btn_01,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_02,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_03,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_04,Lock,0,0,0');
+
+    // Make it move the lift
+    ent.addKey('OnPressed', 'ash47_02_f,Trigger,0,0,0');
+    ent.addKey('OnPressed', 'ash47_02_b,Trigger,0,0,0');
+
+        /*
+        Floor 3
+        */
+
+    // Create a button
+    ent = ents.createEntity('func_button');
+    ent.setName('ash47_btn_03');
+    ent.addKey('model', buttonModel);
+    ent.addKey('origin', new Vector(-7115, -9354, 142));
+    ent.addKey('angles', new Vector(0, 180, 0));
+    ent.addKey('parentname', 'Ash47_Lift');
+    ent.addKey('spawnflags', '1025');
+    ent.addKey('sounds', '3');
+
+    // Enable only our floor
+    ent.addKey('OnPressed', 'ash47_fm_01,Disable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_02,Disable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_03,Enable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_04,Disable,0,0,0');
+
+    // Disable buttons
+    ent.addKey('OnPressed', 'ash47_btn_01,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_02,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_03,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_04,Lock,0,0,0');
+
+    // Make it move the lift
+    ent.addKey('OnPressed', 'ash47_03_f,Trigger,0,0,0');
+    ent.addKey('OnPressed', 'ash47_03_b,Trigger,0,0,0');
+
+    // Create a button
+    ent = ents.createEntity('func_button');
+    ent.setName('ash47_btn_03');
+    ent.addKey('model', buttonModel);
+    ent.addKey('origin', new Vector(-7122, -9382, 1530));
+    ent.addKey('angles', new Vector(0, 0, 0));
+    ent.addKey('spawnflags', '1025');
+    ent.addKey('sounds', '3');
+
+    // Enable only our floor
+    ent.addKey('OnPressed', 'ash47_fm_01,Disable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_02,Disable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_03,Enable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_04,Disable,0,0,0');
+
+    // Disable buttons
+    ent.addKey('OnPressed', 'ash47_btn_01,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_02,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_03,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_04,Lock,0,0,0');
+
+    // Make it move the lift
+    ent.addKey('OnPressed', 'ash47_03_f,Trigger,0,0,0');
+    ent.addKey('OnPressed', 'ash47_03_b,Trigger,0,0,0');
+
+        /*
+        Floor 4
+        */
+
+    // Create a button
+    ent = ents.createEntity('func_button');
+    ent.setName('ash47_btn_04');
+    ent.addKey('model', buttonModel);
+    ent.addKey('origin', new Vector(-7115, -9354, 150));
+    ent.addKey('angles', new Vector(0, 180, 0));
+    ent.addKey('parentname', 'Ash47_Lift');
+    ent.addKey('spawnflags', '1025');
+    ent.addKey('sounds', '3');
+
+    // Enable only our floor
+    ent.addKey('OnPressed', 'ash47_fm_01,Disable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_02,Disable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_03,Disable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_04,Enable,0,0,0');
+
+    // Disable buttons
+    ent.addKey('OnPressed', 'ash47_btn_01,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_02,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_03,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_04,Lock,0,0,0');
+
+    // Make it move the lift
+    ent.addKey('OnPressed', 'Ash47_Lift,StartForward,0,0,0');
+
+    // Create a button
+    ent = ents.createEntity('func_button');
+    ent.setName('ash47_btn_04');
+    ent.addKey('model', buttonModel);
+    ent.addKey('origin', new Vector(-7124, -9379, 2682));
+    ent.addKey('angles', new Vector(0, 0, 0));
+    ent.addKey('spawnflags', '1025');
+    ent.addKey('sounds', '3');
+
+    // Enable only our floor
+    ent.addKey('OnPressed', 'ash47_fm_01,Disable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_02,Disable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_03,Disable,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_04,Enable,0,0,0');
+
+    // Disable buttons
+    ent.addKey('OnPressed', 'ash47_btn_01,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_02,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_03,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_btn_04,Lock,0,0,0');
+
+    // Make it move the lift
+    ent.addKey('OnPressed', 'Ash47_Lift,StartForward,0,0,0');
+
+    // Fix initial allignment
+    ent = ents.createEntity('logic_auto');
+    ent.addKey('OnMapSpawn', 'Ash47_Lift,StartForward,0,1,0');
+    ent.addKey('OnMapSpawn', 'Ash47_Lift,StartBackward,0,2,0');
+    ent.addKey('OnMapSpawn', 'TallBuild_Elev2,StartForward,0,1,0');
+    ent.addKey('OnMapSpawn', 'TallBuild_Elev2,StartBackward,0,2,0');
+    ent.addKey('OnMapSpawn', 'lookatmeimaliftgoinguporgoingdown,StartForward,0,1,0');
+    ent.addKey('OnMapSpawn', 'lookatmeimaliftgoinguporgoingdown,StartBackward,0,2,0');
+
+    // Progress update
+    console.log('Saving modified entities...');
+
+    var vertexesOld = map.getLump(LUMP_VERTEXES).data;
+
+    // Update entities lump
+    map.updateLump(LUMP_ENTITIES, ents.createBuffer());
+    //map.updateLump(LUMP_ENTITIES, map.getLump(LUMP_ENTITIES).rawData);
+
+    console.log('Done saving entities, editing map...');
 
     var dispinfo = map.getLump(LUMP_DISPINFO).data;
     var faces = map.getLump(LUMP_FACES).data;
