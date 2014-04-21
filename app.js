@@ -70,24 +70,27 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
     if(!lift) throw new Error('Failed to find the lift!');
     lift.setName('Ash47_Lift');
     lift.setKey('startspeed', newLiftSpeed);
+    //lift.setKey('target', 'Floor5');
 
     // Modify other lifts
     ent = ents.getEntityByName('TallBuild_Elev2');
     if(!ent) throw new Error('Failed to find the lift!');
     ent.setKey('startspeed', otherLiftSpeed);
+    ent.setKey('target', 'elev1_l2');
 
     ent = ents.getEntityByName('lookatmeimaliftgoinguporgoingdown');
     if(!ent) throw new Error('Failed to find the lift!');
     ent.setKey('startspeed', otherLiftSpeed);
+    ent.setKey('target', 'niggervader1');
 
     // Make lifts land correctly
     ent = ents.getEntityByName('niggervader2');
     if(!ent) throw new Error('Failed to find the lift!');
-    ent.setKey('origin', new Vector(-7819, -8683, -380+32));
+    ent.setKey('origin', new Vector(-7819, -8683, -380+36));
 
     ent = ents.getEntityByName('niggervader1');
     if(!ent) throw new Error('Failed to find the lift!');
-    ent.setKey('origin', new Vector(-7819, -8683, -2191-32));
+    ent.setKey('origin', new Vector(-7819, -8683, -2191-28));
 
     ent = ents.getEntityByName('elev1_l1');
     if(!ent) throw new Error('Failed to find the lift!');
@@ -96,6 +99,22 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
     ent = ents.getEntityByName('elev1_l2');
     if(!ent) throw new Error('Failed to find the lift!');
     ent.setKey('origin', new Vector(-4708, -9285, 1677.96+24));
+
+    // Patch the lower lift buttons
+    ent = ents.getEntityByOrigin(new Vector(-7769.5, -8608.5, -325.5));
+    if(!ent) throw new Error('Failed to find the lift button!');
+    ent.setKey('OnPressed', 'lookatmeimaliftgoinguporgoingdown,StartForward,0,0,0');
+    ent.setKey('sounds', '3');
+
+    ent = ents.getEntityByOrigin(new Vector(-7766.96, -8724.5, -2163.66));
+    if(!ent) throw new Error('Failed to find the lift button!');
+    ent.setKey('OnPressed', 'lookatmeimaliftgoinguporgoingdown,StartForward,0,0,0');
+    ent.setKey('sounds', '3');
+
+    ent = ents.getEntityByOrigin(new Vector(-7769.5, -8608.5, -2153.5));
+    if(!ent) throw new Error('Failed to find the lift button!');
+    ent.setKey('OnPressed', 'lookatmeimaliftgoinguporgoingdown,StartForward,0,0,0');
+    ent.setKey('sounds', '3');
 
     // Grab the button model
     ent = ents.getEntityByOrigin(new Vector(-7106, -9382, 132));
@@ -199,6 +218,7 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
     ent.addKey('OnTrigger', 'ash47_btn_04,Unlock,0,0,0');
     ent.addKey('OnTrigger', 'ash47_03_f,Enable,0,0,0');
     ent.addKey('OnTrigger', 'ash47_03_b,Disable,0,0,0');
+    ent.addKey('StartDisabled', '1');
 
     // Floor 3
     ent = ents.createEntity('logic_relay');
@@ -209,6 +229,7 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
     ent.addKey('OnTrigger', 'ash47_btn_04,Unlock,0,0,0');
     ent.addKey('OnTrigger', 'ash47_02_f,Disable,0,0,0');
     ent.addKey('OnTrigger', 'ash47_02_b,Enable,0,0,0');
+    ent.addKey('StartDisabled', '1');
 
     // Floor 4
     ent = ents.createEntity('logic_relay');
@@ -221,6 +242,7 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
     ent.addKey('OnTrigger', 'ash47_03_f,Disable,0,0,0');
     ent.addKey('OnTrigger', 'ash47_02_b,Enable,0,0,0');
     ent.addKey('OnTrigger', 'ash47_03_b,Enable,0,0,0');
+    ent.addKey('StartDisabled', '1');
 
     /*
     Create Buttons
@@ -447,11 +469,8 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
     // Fix initial allignment
     ent = ents.createEntity('logic_auto');
     ent.addKey('OnMapSpawn', 'Ash47_Lift,StartForward,0,1,0');
-    ent.addKey('OnMapSpawn', 'Ash47_Lift,StartBackward,0,2,0');
     ent.addKey('OnMapSpawn', 'TallBuild_Elev2,StartForward,0,1,0');
-    ent.addKey('OnMapSpawn', 'TallBuild_Elev2,StartBackward,0,2,0');
     ent.addKey('OnMapSpawn', 'lookatmeimaliftgoinguporgoingdown,StartForward,0,1,0');
-    ent.addKey('OnMapSpawn', 'lookatmeimaliftgoinguporgoingdown,StartBackward,0,2,0');
 
     // Progress update
     console.log('Saving modified entities...');
