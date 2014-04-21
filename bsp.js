@@ -21,6 +21,7 @@ var SIZE_DFACE_T = 56;
 var SIZE_DDISPINFO_T = 176;
 var HEADER_LUMPS = 64;
 var SIZE_DGAMELUMP_T = 16;
+var SIZE_COLORRGBEXP32 = 4;
 
 // Lump IDs
 var LUMP_ENTITIES = 0;
@@ -169,6 +170,8 @@ bsp.prototype.findLumps = function() {
 
     // Load the map revision
     this.mapRevision = this.data.readUInt32LE(8+HEADER_LUMPS*SIZE_LUMP_T);
+
+    console.log('Map version '+this.version);
 }
 
 // Return the lump data for the given number
@@ -387,6 +390,19 @@ bsp.prototype.getLump = function(number) {
             data = [];
             for(var i=0; i<total; i++) {
                 data[i] = rawData.readInt32LE(i*SIZE_INT);
+            }
+
+            // Store data onto the lump
+            lump.data = data;
+        break;
+
+        case LUMP_LIGHTING:
+            var total = lump_t.filelen / SIZE_COLORRGBEXP32;
+
+            // Build useful data
+            data = [];
+            for(var i=0; i<total; i++) {
+                data[i] = new ColorRGBExp32(rawData.slice(i*SIZE_COLORRGBEXP32, (i+1)*SIZE_COLORRGBEXP32));
             }
 
             // Store data onto the lump
@@ -760,6 +776,27 @@ dedge_t.prototype.save = function() {
     this.buff.writeUInt16LE(this.v[1], 2);
 }
 
+/*
+ColorRGBExp32 class
+*/
+function ColorRGBExp32(buff) {
+    this.buff = buff;
+    this.load();
+}
+
+ColorRGBExp32.prototype.load = function() {
+    this.r = this.buff.readUInt8(0);
+    this.g = this.buff.readUInt8(1);
+    this.b = this.buff.readUInt8(2);
+    this.exponent = this.buff.readInt8(3);
+}
+
+ColorRGBExp32.prototype.save = function() {
+    this.buff.writeUInt8(this.r, 0);
+    this.buff.writeUInt8(this.g, 1);
+    this.buff.writeUInt8(this.b, 2);
+    this.buff.writeInt8(this.exponent, 3);
+}
 
 /*
 dface_t class

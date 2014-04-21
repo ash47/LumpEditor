@@ -500,7 +500,6 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
 
         // Check if this is a cave displacement
         if(toRemove[pos.toString()]) {
-
             var face = faces[disp.MapFace];
             if(face) {
                 // Loop over this face's surfedges
