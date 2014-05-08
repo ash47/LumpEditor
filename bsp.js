@@ -22,6 +22,7 @@ var SIZE_DDISPINFO_T = 176;
 var HEADER_LUMPS = 64;
 var SIZE_DGAMELUMP_T = 16;
 var SIZE_COLORRGBEXP32 = 4;
+var SIZE_DDISPVERT = 20;
 
 // Lump IDs
 var LUMP_ENTITIES = 0;
@@ -40,6 +41,7 @@ var LUMP_EDGES = 12;
 var LUMP_SURFEDGES = 13;
 var LUMP_MODELS = 14;
 var LUMP_DISPINFO = 26;
+var LUMP_DISP_VERTS = 33;
 var LUMP_GAME_LUMP = 35;
 
 /*
@@ -351,6 +353,19 @@ bsp.prototype.getLump = function(number) {
             data = [];
             for(var i=0; i<total; i++) {
                 data[i] = new dplane_t(rawData.slice(i*SIZE_DPLANE_T, (i+1)*SIZE_DPLANE_T));
+            }
+
+            // Store data onto the lump
+            lump.data = data;
+        break;
+
+        case LUMP_DISP_VERTS:
+            var total = lump_t.filelen / SIZE_DDISPVERT;
+
+            // Build useful data
+            data = [];
+            for(var i=0; i<total; i++) {
+                data[i] = new dDispVert(rawData.slice(i*SIZE_DDISPVERT, (i+1)*SIZE_DDISPVERT));
             }
 
             // Store data onto the lump
@@ -737,6 +752,26 @@ dgamelump_t.prototype.save = function() {
     this.buff.writeUInt16LE(this.version, 6);
     this.buff.writeInt32LE(this.fileofs, 8);
     this.buff.writeInt32LE(this.filelen, 12);
+}
+
+/*
+dDispVert class
+*/
+function dDispVert(buff) {
+    this.buff = buff;
+    this.load();
+}
+
+dDispVert.prototype.load = function() {
+    this.vec = new Vector_s(this.buff.slice(0, 12));
+    this.dist = this.buff.readFloatLE(12);
+    this.alpha = this.buff.readFloatLE(16);
+}
+
+dDispVert.prototype.save = function() {
+    this.vec.save();
+    this.buff.writeFloatLE(this.dist, 12);
+    this.buff.writeFloatLE(this.alpha, 16);
 }
 
 /*

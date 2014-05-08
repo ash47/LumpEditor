@@ -19,6 +19,7 @@ var LUMP_EDGES = 12;
 var LUMP_SURFEDGES = 13;
 var LUMP_MODELS = 14;
 var LUMP_DISPINFO = 26;
+var LUMP_DISP_VERTS = 33;
 var LUMP_GAME_LUMP = 35;
 
 // Replace shit
@@ -48,6 +49,9 @@ doRemove(-8840,12938,64);
 doRemove(-8584,11256,64);
 doRemove(-9608,12938,368);
 doRemove(-8584,11256,368);
+
+// The position of the displacement that needs to be made smoother
+var dispPatchPos = new Vector(-5566, -385, 58).toString();
 
 // Progrsss update
 console.log('Attempting to load evocity...');
@@ -114,6 +118,22 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
     ent = ents.getEntityByOrigin(new Vector(-7769.5, -8608.5, -2153.5));
     if(!ent) throw new Error('Failed to find the lift button!');
     ent.setKey('OnPressed', 'lookatmeimaliftgoinguporgoingdown,StartForward,0,0,0');
+    ent.setKey('sounds', '3');
+
+    // Tall building buttons
+    ent = ents.getEntityByName('call1');
+    if(!ent) throw new Error('Failed to find the lift button!');
+    ent.setKey('OnPressed', 'TallBuild_Elev2,StartForward,0,0,0');
+    ent.setKey('sounds', '3');
+
+    ent = ents.getEntityByName('call2');
+    if(!ent) throw new Error('Failed to find the lift button!');
+    ent.setKey('OnPressed', 'TallBuild_Elev2,StartForward,0,0,0');
+    ent.setKey('sounds', '3');
+
+    ent = ents.getEntityByName('cockbtn1');
+    if(!ent) throw new Error('Failed to find the lift button!');
+    ent.setKey('OnPressed', 'TallBuild_Elev2,StartForward,0,0,0');
     ent.setKey('sounds', '3');
 
     // Grab the button model
@@ -484,6 +504,7 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
     console.log('Done saving entities, editing map...');
 
     var dispinfo = map.getLump(LUMP_DISPINFO).data;
+    var dispverts = map.getLump(LUMP_DISP_VERTS).data;
     var faces = map.getLump(LUMP_FACES).data;
     //var planes = map.getLump(LUMP_PLANES).data;
     var vertexes = map.getLump(LUMP_VERTEXES).data;
@@ -497,9 +518,10 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
         // Grab the position of this displacement
         var disp = dispinfo[i];
         var pos = disp.startPosition;
+        var posStr = pos.toString();
 
         // Check if this is a cave displacement
-        if(toRemove[pos.toString()]) {
+        if(toRemove[posStr]) {
             var face = faces[disp.MapFace];
             if(face) {
                 // Loop over this face's surfedges
@@ -533,6 +555,47 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
                 }
             } else {
                 console.log('Failed to find face!');
+            }
+        } else if(posStr == dispPatchPos) {
+            // Patch the displacement
+            var total = Math.pow(Math.pow(2, disp.power)+1, 2);
+            var end = disp.DispVertStart + total;
+
+            // Build dist array
+            var dists = [];
+            dists = dists.concat([0,0,0,0,0,0,0,0,0]);
+            dists = dists.concat([0,0,0,0,0,0,0,0,0]);
+            dists = dists.concat([14.9199,22.4576,14.9199,0,0,0,0,0,0]);
+            dists = dists.concat([28.7401,36.246,24.9733,10,0,0,0,0,0]);
+            dists = dists.concat([29.933,33.6969,8.7036,5,0,0,0,0,0]);
+            dists = dists.concat([36.3485,43.3119,12.0081,2.04281,9.0036,2.7819,0,0,0]);
+            dists = dists.concat([38.1556,3.1073,4.4995,4.13319,7.0567,0.781601,2.18277,0,0]);
+            dists = dists.concat([25.295,14.001,14.24,1.789,18.902,6.8936,2.3924,9.335,70.8692]);
+            dists = dists.concat([62.714,45.431,10.547,6.97699,9.42801,3.31479,10.1173,9.864,99.9388]);
+
+            // Build norms array
+            var norms = [];
+            norms = norms.concat([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
+            norms = norms.concat([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
+            norms = norms.concat([0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
+            norms = norms.concat([0,0,1,0,0,1,0,0,1,0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
+            norms = norms.concat([0,0,1,0,0,1,0,0,1,0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
+            norms = norms.concat([0,0,1,0,0,1,0,0,1,0,0,1,0,0,-1,0,0,-1,0,0,0,0,0,0,0,0,0]);
+            norms = norms.concat([0,0,1,0,0,1,0,0,1,0,0,1,0,0,-1,0,0,1,0,0,1,0,0,0,0,0,0]);
+            norms = norms.concat([0,0,1,0,0,1,0,0,1,0,0,-1,0,0,-1,0,0,-1,0,0,1,0,0,1,0,0,1]);
+            norms = norms.concat([0,0,1,0,0,1,0,0,1,0,0,-1,0,0,-1,0,0,1,0,0,-1,0,0,1,0,0,1]);
+
+            var distn = 0;
+            var normsn = 0;
+
+            // Loop over all disp verts
+            for(var j=disp.DispVertStart; j<end; j++) {
+                var dv = dispverts[j];
+                dv.dist = dists[distn++];
+                dv.vec.x = norms[normsn++];
+                dv.vec.y = norms[normsn++];
+                dv.vec.z = norms[normsn++];
+                dv.save();
             }
         }
     }
