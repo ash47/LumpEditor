@@ -21,6 +21,7 @@ var LUMP_MODELS = 14;
 var LUMP_DISPINFO = 26;
 var LUMP_DISP_VERTS = 33;
 var LUMP_GAME_LUMP = 35;
+var LUMP_TEXDATA_STRING_DATA = 43;
 
 // Replace shit
 var toRemove = {};
@@ -522,6 +523,7 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
 
         // Check if this is a cave displacement
         if(toRemove[posStr]) {
+            //disp.remove();
             var face = faces[disp.MapFace];
             if(face) {
                 // Loop over this face's surfedges
@@ -539,8 +541,8 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
                                 b.x = 0;
                                 a.y = 0;
                                 b.y = 0;
-                                a.z = 0;
-                                b.z = 0;
+                                a.z = -100000;
+                                b.z = -100000;
                                 a.save();
                                 b.save();
                             } else {
@@ -601,6 +603,9 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
             }
         }
     }
+
+    // Update lump
+    //map.updateLump(LUMP_DISPINFO, dispinfo.createBuffer());
 
     // Progress Update
     console.log('Finished making changes! Saving changes...');

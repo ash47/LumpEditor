@@ -43,6 +43,7 @@ var LUMP_MODELS = 14;
 var LUMP_DISPINFO = 26;
 var LUMP_DISP_VERTS = 33;
 var LUMP_GAME_LUMP = 35;
+var LUMP_TEXDATA_STRING_DATA = 43;
 
 /*
 BSP class
@@ -329,6 +330,27 @@ bsp.prototype.getLump = function(number) {
                 data[i] = new ddispinfo_t(rawData.slice(i*SIZE_DDISPINFO_T, (i+1)*SIZE_DDISPINFO_T));
             }
 
+            /*data.createBuffer = function() {
+                var itemList = [];
+                for(var i=0; i<data.length; i++) {
+                    if(data[i].doRemove) {
+                        data.remove(i);
+                        i--;
+                    } else {
+                        itemList.push(i);
+                    }
+                }
+
+                var newBuffer = new Buffer(SIZE_DDISPINFO_T * data.length);
+                for(var i=0; i<data.length; i++) {
+                    rawData.copy(newBuffer, i*SIZE_DDISPINFO_T, itemList[i]*SIZE_DDISPINFO_T, (itemList[i]+1)*SIZE_DDISPINFO_T);
+                }
+
+                return newBuffer;
+
+                //updateLump
+            }*/
+
             // Store data onto the lump
             lump.data = data;
         break;
@@ -427,6 +449,11 @@ bsp.prototype.getLump = function(number) {
         case LUMP_GAME_LUMP:
             // Load game lumps
             lump.data = new dgamelumpheader_t(rawData);
+        break;
+
+        case LUMP_TEXDATA_STRING_DATA:
+            var data = (''+rawData).split('\0');
+            lump.data = data;
         break;
     }
 
@@ -924,6 +951,10 @@ ddispinfo_t.prototype.save = function() {
     // missing EdgeNeighbors, CornerNeighbors, AllowedVerts
 }
 
+ddispinfo_t.prototype.remove = function() {
+    this.doRemove = true;
+}
+
 /*
 vector class
 */
@@ -974,6 +1005,13 @@ Buffer.prototype.writeVector = function(vec, offset) {
     this.writeFloatLE(vec.y, offset+4);
     this.writeFloatLE(vec.z, offset+8);
 }
+
+// Array Remove
+Array.prototype.remove = function(from, to) {
+  var rest = this.slice((to || from) + 1 || this.length);
+  this.length = from < 0 ? this.length + from : from;
+  return this.push.apply(this, rest);
+};
 
 // Define exports
 exports.bsp = bsp;
