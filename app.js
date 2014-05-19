@@ -75,7 +75,7 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
     if(!lift) throw new Error('Failed to find the lift!');
     lift.setName('Ash47_Lift');
     lift.setKey('startspeed', newLiftSpeed);
-    //lift.setKey('target', 'Floor5');
+    lift.setKey('target', 'ash47_path_02_a');
 
     // Modify other lifts
     ent = ents.getEntityByName('TallBuild_Elev2');
@@ -176,10 +176,78 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
     if(!ent) throw new Error('Failed to find relay f3');
     ents.removeEntity(ent);
 
-    // Modify the old track
+    /*
+        Cleanup the old track
+    */
+
+    // Floor 1
     ent = ents.getEntityByName('Floor4')
     if(!ent) throw new Error('Failed to find Floor4');
+    ents.removeEntity(ent);
+
+    // Floor 2
+    ent = ents.getEntityByName('Floor2')
+    if(!ent) throw new Error('Failed to find Floor2');
+    ents.removeEntity(ent);
+
+    // Floor 3
+    ent = ents.getEntityByName('Floor3')
+    if(!ent) throw new Error('Failed to find Floor3');
+    ents.removeEntity(ent);
+
+    // Floor 4
+    ent = ents.getEntityByName('Floor5')
+    if(!ent) throw new Error('Failed to find Floor5');
+    ents.removeEntity(ent);
+
+    /*
+        Create a brand new track
+    */
+
+    // Floor 1
+    ent = ents.createEntity('path_track');
+    ent.setName('ash47_path_01');
+    ent.setKey('origin', new Vector(-7188, -9309, 128-9));
+    ent.setKey('target', 'ash47_path_02_a');
     ent.setKey('OnPass', 'ash47_fm_01,Trigger,0,0,0');
+
+    // Floor 2
+    ent = ents.createEntity('path_track');
+    ent.setName('ash47_path_02_a');
+    ent.setKey('origin', new Vector(-7188, -9309, 908-6-15));
+    ent.setKey('target', 'ash47_path_02_b');
+    ent.setKey('OnPass', 'ash47_fm_02_a,Trigger,0,0,0');
+
+    ent = ents.createEntity('path_track');
+    ent.setName('ash47_path_02_b');
+    ent.setKey('origin', new Vector(-7188, -9309, 908-6+15));
+    ent.setKey('target', 'ash47_path_03_a');
+    ent.setKey('OnPass', 'ash47_fm_02_b,Trigger,0,0,0');
+
+    // Floor 3
+    ent = ents.createEntity('path_track');
+    ent.setName('ash47_path_03_a');
+    ent.setKey('origin', new Vector(-7188, -9309, 1548-6-15));
+    ent.setKey('target', 'ash47_path_03_b');
+    ent.setKey('OnPass', 'ash47_fm_03_a,Trigger,0,0,0');
+
+    ent = ents.createEntity('path_track');
+    ent.setName('ash47_path_03_b');
+    ent.setKey('origin', new Vector(-7188, -9309, 1548-6+15));
+    ent.setKey('target', 'ash47_path_04');
+    ent.setKey('OnPass', 'ash47_fm_03_b,Trigger,0,0,0');
+
+    // Floor 4
+    ent = ents.createEntity('path_track');
+    ent.setName('ash47_path_04');
+    ent.setKey('origin', new Vector(-7188, -9309, 2680+15));
+    ent.setKey('target', 'ash47_path_01');
+    ent.setKey('OnPass', 'ash47_fm_04,Trigger,0,0,0');
+
+
+    // Modify the old track
+
+    /*ent.setKey('OnPass', 'ash47_fm_01,Trigger,0,0,0');
     ent.setKey('origin', new Vector(-7188, -9309, 128-9));
 
     ent = ents.getEntityByName('Floor2')
@@ -195,24 +263,42 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
     ent = ents.getEntityByName('Floor5')
     if(!ent) throw new Error('Failed to find Floor4');
     ent.setKey('OnPass', 'ash47_fm_04,Trigger,0,0,0');
-    ent.setKey('origin', new Vector(-7188, -9309, 2680+15));
+    ent.setKey('origin', new Vector(-7188, -9309, 2680+15));*/
+
+    // Relay to disable all floor
+    ent = ents.createEntity('logic_relay');
+    ent.setName('ash47_clear_lift');
+    ent.addKey('OnTrigger', 'ash47_fm_01,Disable,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_fm_02_a,Disable,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_fm_02_b,Disable,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_fm_03_a,Disable,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_fm_03_b,Disable,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_fm_04,Disable,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_btn_01,Lock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_btn_02,Lock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_btn_03,Lock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_btn_04,Lock,0,0,0');
 
     // Relays to make lift take shortest route
     ent = ents.createEntity('logic_relay');
     ent.setName('ash47_02_f');
-    ent.addKey('OnTrigger', 'Ash47_Lift,StartForward,0,0,0');
+    ent.addKey('OnTrigger', 'Ash47_Lift,StartForward,0,0.1,0');
+    ent.addKey('OnTrigger', 'ash47_fm_02_b,Enable,0,0.1,0');
 
     ent = ents.createEntity('logic_relay');
     ent.setName('ash47_02_b');
-    ent.addKey('OnTrigger', 'Ash47_Lift,StartBackward,0,0,0');
+    ent.addKey('OnTrigger', 'Ash47_Lift,StartBackward,0,0.1,0');
+    ent.addKey('OnTrigger', 'ash47_fm_02_a,Enable,0,0.1,0');
 
     ent = ents.createEntity('logic_relay');
     ent.setName('ash47_03_f');
-    ent.addKey('OnTrigger', 'Ash47_Lift,StartForward,0,0,0');
+    ent.addKey('OnTrigger', 'Ash47_Lift,StartForward,0,0.1,0');
+    ent.addKey('OnTrigger', 'ash47_fm_03_b,Enable,0,0.1,0');
 
     ent = ents.createEntity('logic_relay');
     ent.setName('ash47_03_b');
-    ent.addKey('OnTrigger', 'Ash47_Lift,StartBackward,0,0,0');
+    ent.addKey('OnTrigger', 'Ash47_Lift,StartBackward,0,0.1,0');
+    ent.addKey('OnTrigger', 'ash47_fm_03_a,Enable,0,0.1,0');
 
     /*
     Floor Managers
@@ -232,8 +318,18 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
 
     // Floor 2
     ent = ents.createEntity('logic_relay');
-    ent.setName('ash47_fm_02');
-    ent.addKey('OnTrigger', 'Ash47_Lift,Stop,0,0.070,0');
+    ent.setName('ash47_fm_02_a');
+    ent.addKey('OnTrigger', 'Ash47_Lift,Stop,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_btn_01,Unlock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_btn_03,Unlock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_btn_04,Unlock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_03_f,Enable,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_03_b,Disable,0,0,0');
+    ent.addKey('StartDisabled', '1');
+
+    ent = ents.createEntity('logic_relay');
+    ent.setName('ash47_fm_02_b');
+    ent.addKey('OnTrigger', 'Ash47_Lift,Stop,0,0,0');
     ent.addKey('OnTrigger', 'ash47_btn_01,Unlock,0,0,0');
     ent.addKey('OnTrigger', 'ash47_btn_03,Unlock,0,0,0');
     ent.addKey('OnTrigger', 'ash47_btn_04,Unlock,0,0,0');
@@ -243,8 +339,18 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
 
     // Floor 3
     ent = ents.createEntity('logic_relay');
-    ent.setName('ash47_fm_03');
-    ent.addKey('OnTrigger', 'Ash47_Lift,Stop,0,0.074,0');
+    ent.setName('ash47_fm_03_a');
+    ent.addKey('OnTrigger', 'Ash47_Lift,Stop,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_btn_01,Unlock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_btn_02,Unlock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_btn_04,Unlock,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_02_f,Disable,0,0,0');
+    ent.addKey('OnTrigger', 'ash47_02_b,Enable,0,0,0');
+    ent.addKey('StartDisabled', '1');
+
+    ent = ents.createEntity('logic_relay');
+    ent.setName('ash47_fm_03_b');
+    ent.addKey('OnTrigger', 'Ash47_Lift,Stop,0,0,0');
     ent.addKey('OnTrigger', 'ash47_btn_01,Unlock,0,0,0');
     ent.addKey('OnTrigger', 'ash47_btn_02,Unlock,0,0,0');
     ent.addKey('OnTrigger', 'ash47_btn_04,Unlock,0,0,0');
@@ -285,19 +391,11 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
     ent.addKey('sounds', '3');
 
     // Enable only our floor
-    ent.addKey('OnPressed', 'ash47_fm_01,Enable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_02,Disable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_03,Disable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_04,Disable,0,0,0');
-
-    // Disable buttons
-    ent.addKey('OnPressed', 'ash47_btn_01,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_02,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_03,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_04,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_clear_lift,Trigger,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_01,Enable,0,0.1,0');
 
     // Make it move the lift
-    ent.addKey('OnPressed', 'Ash47_Lift,StartBackward,0,0,0');
+    ent.addKey('OnPressed', 'Ash47_Lift,StartBackward,0,0.1,0');
 
     // Create a button
     ent = ents.createEntity('func_button');
@@ -310,19 +408,11 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
     ent.addKey('sounds', '3');
 
     // Enable only our floor
-    ent.addKey('OnPressed', 'ash47_fm_01,Enable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_02,Disable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_03,Disable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_04,Disable,0,0,0');
-
-    // Disable buttons
-    ent.addKey('OnPressed', 'ash47_btn_01,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_02,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_03,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_04,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_clear_lift,Trigger,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_01,Enable,0,0.1,0');
 
     // Make it move the lift
-    ent.addKey('OnPressed', 'Ash47_Lift,StartBackward,0,0,0');
+    ent.addKey('OnPressed', 'Ash47_Lift,StartBackward,0,0.1,0');
 
         /*
         Floor 2
@@ -339,16 +429,7 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
     ent.addKey('sounds', '3');
 
     // Enable only our floor
-    ent.addKey('OnPressed', 'ash47_fm_01,Disable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_02,Enable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_03,Disable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_04,Disable,0,0,0');
-
-    // Disable buttons
-    ent.addKey('OnPressed', 'ash47_btn_01,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_02,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_03,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_04,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_clear_lift,Trigger,0,0,0');
 
     // Make it move the lift
     ent.addKey('OnPressed', 'ash47_02_f,Trigger,0,0,0');
@@ -364,16 +445,7 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
     ent.addKey('sounds', '3');
 
     // Enable only our floor
-    ent.addKey('OnPressed', 'ash47_fm_01,Disable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_02,Enable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_03,Disable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_04,Disable,0,0,0');
-
-    // Disable buttons
-    ent.addKey('OnPressed', 'ash47_btn_01,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_02,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_03,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_04,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_clear_lift,Trigger,0,0,0');
 
     // Make it move the lift
     ent.addKey('OnPressed', 'ash47_02_f,Trigger,0,0,0');
@@ -394,16 +466,7 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
     ent.addKey('sounds', '3');
 
     // Enable only our floor
-    ent.addKey('OnPressed', 'ash47_fm_01,Disable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_02,Disable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_03,Enable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_04,Disable,0,0,0');
-
-    // Disable buttons
-    ent.addKey('OnPressed', 'ash47_btn_01,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_02,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_03,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_04,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_clear_lift,Trigger,0,0,0');
 
     // Make it move the lift
     ent.addKey('OnPressed', 'ash47_03_f,Trigger,0,0,0');
@@ -419,16 +482,7 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
     ent.addKey('sounds', '3');
 
     // Enable only our floor
-    ent.addKey('OnPressed', 'ash47_fm_01,Disable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_02,Disable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_03,Enable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_04,Disable,0,0,0');
-
-    // Disable buttons
-    ent.addKey('OnPressed', 'ash47_btn_01,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_02,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_03,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_04,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_clear_lift,Trigger,0,0,0');
 
     // Make it move the lift
     ent.addKey('OnPressed', 'ash47_03_f,Trigger,0,0,0');
@@ -449,19 +503,11 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
     ent.addKey('sounds', '3');
 
     // Enable only our floor
-    ent.addKey('OnPressed', 'ash47_fm_01,Disable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_02,Disable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_03,Disable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_04,Enable,0,0,0');
-
-    // Disable buttons
-    ent.addKey('OnPressed', 'ash47_btn_01,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_02,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_03,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_04,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_clear_lift,Trigger,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_04,Enable,0,0.1,0');
 
     // Make it move the lift
-    ent.addKey('OnPressed', 'Ash47_Lift,StartForward,0,0,0');
+    ent.addKey('OnPressed', 'Ash47_Lift,StartForward,0,0.1,0');
 
     // Create a button
     ent = ents.createEntity('func_button');
@@ -473,23 +519,15 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
     ent.addKey('sounds', '3');
 
     // Enable only our floor
-    ent.addKey('OnPressed', 'ash47_fm_01,Disable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_02,Disable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_03,Disable,0,0,0');
-    ent.addKey('OnPressed', 'ash47_fm_04,Enable,0,0,0');
-
-    // Disable buttons
-    ent.addKey('OnPressed', 'ash47_btn_01,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_02,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_03,Lock,0,0,0');
-    ent.addKey('OnPressed', 'ash47_btn_04,Lock,0,0,0');
+    ent.addKey('OnPressed', 'ash47_clear_lift,Trigger,0,0,0');
+    ent.addKey('OnPressed', 'ash47_fm_04,Enable,0,0.1,0');
 
     // Make it move the lift
-    ent.addKey('OnPressed', 'Ash47_Lift,StartForward,0,0,0');
+    ent.addKey('OnPressed', 'Ash47_Lift,StartForward,0,0.1,0');
 
     // Fix initial allignment
     ent = ents.createEntity('logic_auto');
-    ent.addKey('OnMapSpawn', 'Ash47_Lift,StartForward,0,1,0');
+    ent.addKey('OnMapSpawn', 'Ash47_Lift,StartBackward,0,1,0');
     ent.addKey('OnMapSpawn', 'TallBuild_Elev2,StartForward,0,1,0');
     ent.addKey('OnMapSpawn', 'lookatmeimaliftgoinguporgoingdown,StartForward,0,1,0');
 
@@ -541,8 +579,8 @@ new bsp('RP_EvoCity_v2d.bsp', function(map) {
                                 b.x = 0;
                                 a.y = 0;
                                 b.y = 0;
-                                a.z = -100000;
-                                b.z = -100000;
+                                a.z = -1000;
+                                b.z = -1000;
                                 a.save();
                                 b.save();
                             } else {

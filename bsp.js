@@ -659,7 +659,7 @@ entity.prototype.setKey = function(keyName, value, n) {
     }
 
     // Key must not exist, add it
-    this.addKey('keyName', value);
+    this.addKey(keyName, value);
 
     return false;
 }
